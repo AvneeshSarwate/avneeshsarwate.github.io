@@ -1,7 +1,15 @@
 # The Force
 
-(ORIGINAL REPO HOSTED HERE - https://shawnlawson.github.io/The_Force/)
+(ORIGINAL REPO BY SHAWN LAWSON, HOSTED HERE - https://github.com/shawnlawson/The_Force)
+
+(modifications made here include fixing a bug in the OSC module, adding support for webcam and video textures, and adding a ~12 fps webcam "snapshot" texture for doing hacky motion detection)
+
 (ALSO, requires node version 4 to run)
+
+
+
+ORIGINAL README -->
+
 
 Life creates it, makes it grow. Its energy surrounds us and binds us. Luminous beings are we, not this crude matter. You must feel the Force around you; here, between you, me, the tree, the rock, everywhere, yes.
 
