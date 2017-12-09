@@ -138,11 +138,11 @@ float hexDiffAvg(vec2 p, float numHex){
 }
 
 float sinN(float t){
-   return (sin(t) + 1.) / 1.; 
+   return (sin(t) + 1.) / 2.; 
 }
 
 float cosN(float t){
-   return (cos(t) + 1.) / 1.; 
+   return (cos(t) + 1.) / 2.; 
 }
 
 vec3 diffColor(float time2){
@@ -153,8 +153,8 @@ vec3 diffColor(float time2){
 
     vec2 xy;
     float noiseVal = rand(stN)*sin(time2/7.) * 0.15;
-    if(mod(segGrid.x, 2.) == mod(segGrid.y, 2.)) xy = rotate(vec2(sinN(time2), cosN(time2)), stN.xy, time2 + noiseVal);
-    else xy = rotate(vec2(sinN(time2), cosN(time2)), stN.xy, - time2 - noiseVal);
+    if(mod(segGrid.x, 2.) == mod(segGrid.y, 2.)) xy = rotate(vec2(sinN(time2*3.), cosN(time2*3.)), stN.xy, time2 + noiseVal);
+    else xy = rotate(vec2(sinN(time2*3.), cosN(time2*3.)), stN.xy, - time2 - noiseVal);
     
     float section = floor(xy.x*30.0 * sin(time2/7.)); 
     float tile = mod(section, 2.);
@@ -252,6 +252,6 @@ void main () {
         }
     }
     
-    gl_FragColor = vec4(c, feedback);
+    gl_FragColor = vec4(col, feedback);
 }
 `
