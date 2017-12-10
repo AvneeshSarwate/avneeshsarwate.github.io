@@ -35,7 +35,7 @@ var videosReady = [false, false, false, false];
 var webcamSnapshotTexture;
 var takeSnapshot = true;
 
-var presetShaderCode;
+var defaultShaderCompiled = false;
 
 function createGlContext() {
     var gGLContext = null;
@@ -183,6 +183,8 @@ function newShader(vs, shaderCode) {
     if (res.mSuccess === false) {
         return res;
     }
+
+    defaultShaderCompiled = true;
 
     if (typeof(Storage) !== "undefined") {
         localStorage.lastValidCode = shaderCode;

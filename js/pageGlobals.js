@@ -1068,10 +1068,14 @@ $( document ).ready(function()
     renderLoop2();
     editor.focus();
 
-    setTimeout(function() {
-        editor.setValue(defaultShader);
-        setShaderFromEditor();
-    }, 1000);
+    for(var i = 1; i < 20; i++) {
+        if(!defaultShaderCompiled) {
+            setTimeout(function() {
+                editor.setValue(defaultShader);
+                setShaderFromEditor();
+            }, i*1000);
+        }
+    }
     var player =  document.getElementById('player');
     var uiUpdater = new UiUpdater();
     
