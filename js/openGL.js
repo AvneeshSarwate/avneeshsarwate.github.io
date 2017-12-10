@@ -184,7 +184,10 @@ function newShader(vs, shaderCode) {
         return res;
     }
 
-    defaultShaderCompiled = true;
+    defaultShaderCompiled = shaderCode === defaultShader || defaultShaderCompiled;
+    if(defaultShaderCompiled){
+      console.log("SHADER LEN " + defaultShader.length);
+    }
 
     if (typeof(Storage) !== "undefined") {
         localStorage.lastValidCode = shaderCode;
