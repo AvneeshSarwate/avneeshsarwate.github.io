@@ -171,8 +171,8 @@ function createTarget(width, height) {
     return target;
 }
 
-function setShaderFromEditor() {
-    var result = newShader(vsDraw, defaultShader);
+function setShaderFromEditor(shaderCode) {
+    var result = newShader(vsDraw, shaderCode ? shaderCode : editor.getValue());
     sendOSCMessages();
     return setShader(result, false);
 }

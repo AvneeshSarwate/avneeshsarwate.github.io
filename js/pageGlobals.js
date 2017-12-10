@@ -1072,7 +1072,7 @@ $( document ).ready(function()
         if(!defaultShaderCompiled) {
             setTimeout(function() {
                 editor.setValue(defaultShader);
-                setShaderFromEditor();
+                setShaderFromEditor(defaultShader);
             }, i*1000);
         }
     }
