@@ -1,98 +1,4 @@
 var defaultShader = `
-// bitwise stuff from here https://gist.github.com/EliCDavis/f35a9e4afb8e1c9ae94cce8f3c2c9b9a
-int OR(int n1, int n2){
-
-    float v1 = float(n1);
-    float v2 = float(n2);
-    
-    int byteVal = 1;
-    int result = 0;
-    
-    for(int i = 0; i < 32; i++){
-        bool keepGoing = v1>0.0 || v2 > 0.0;
-        if(keepGoing){
-            
-            bool addOn = mod(v1, 2.0) > 0.0 || mod(v2, 2.0) > 0.0;
-            
-            if(addOn){
-                result += byteVal;
-            }
-            
-            v1 = floor(v1 / 2.0);
-            v2 = floor(v2 / 2.0);
-            
-            byteVal *= 2;
-        } else {
-            return result;
-        }
-    }
-    return result;  
-}
-
-int AND(int n1, int n2){
-    
-    float v1 = float(n1);
-    float v2 = float(n2);
-    
-    int byteVal = 1;
-    int result = 0;
-    
-    for(int i = 0; i < 32; i++){
-        bool keepGoing = v1>0.0 || v2 > 0.0;
-        if(keepGoing){
-            
-            bool addOn = mod(v1, 2.0) > 0.0 && mod(v2, 2.0) > 0.0;
-            
-            if(addOn){
-                result += byteVal;
-            }
-            
-            v1 = floor(v1 / 2.0);
-            v2 = floor(v2 / 2.0);
-            byteVal *= 2;
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
-int NAND(int n1, int n2){
-    
-    float v1 = float(n1);
-    float v2 = float(n2);
-    
-    int byteVal = 1;
-    int result = 0;
-    
-    for(int i = 0; i < 32; i++){
-        bool keepGoing = v1>0.0 || v2 > 0.0;
-        if(keepGoing){
-            
-            bool addOn = mod(v1, 2.0) != mod(v2, 2.0);
-            
-            if(addOn){
-                result += byteVal;
-            }
-            
-            v1 = floor(v1 / 2.0);
-            v2 = floor(v2 / 2.0);
-            byteVal *= 2;
-        } else {
-            return result;
-        }
-    }
-    return result;
-}
-
-int XOR(int n1, int n2){
-    return AND(NAND(n1, n2), OR(n1, n2));
-}
-
-int RShift(int num, float shifts){
-    return int(floor(float(num) / pow(2.0, shifts)));
-}
-
 // hexagon stuff from here - https://www.redblobgames.com/grids/hexagons/#hex-to-pixel
 vec2 cube_to_axial(vec3 cube){
     float q = cube.x;
@@ -232,11 +138,11 @@ float hexDiffAvg(vec2 p, float numHex){
 }
 
 float sinN(float t){
-   return (sin(t) + 1.) / 1.; 
+   return (sin(t) + 1.) / 2.; 
 }
 
 float cosN(float t){
-   return (cos(t) + 1.) / 1.; 
+   return (cos(t) + 1.) / 2.; 
 }
 
 vec3 diffColor(float time2, vec2 stN){
@@ -286,7 +192,6 @@ float quant(float num, float quantLevels){
     return (floor(num*quantLevels)+roundPart)/quantLevels;
 }
 
-
 float wrap(float val, float low, float high){
     if(val < low) return low + (low-val);
     if(val > high) return high - (val - high);
@@ -295,11 +200,6 @@ float wrap(float val, float low, float high){
 
 float bound(float val, float lower, float upper){
     return max(lower, min(upper, val));
-}
-
-bool boxHasColorDiff(vec2 xy, float boxSize, float diffThresh, float diffFrac){
-    float boxArea = boxSize * boxSize;
-    return true;
 }
 
 float block(float numBlocks, float quantLevel) {
@@ -340,14 +240,6 @@ float twinGeo(float v, float range){
     return 1.;
 }
 
-int intS(float v){
-    return int(v* pow(2., 30.));
-}
-
-vec3 v3XOR(vec3 col, vec3 t1){
-    return vec3(XOR(intS(col.x), intS(t1.x)), XOR(intS(col.y), intS(t1.y)), XOR(intS(col.z), intS(t1.z))) / pow(2., 30.);
-}
-
 void main () {
     vec2 stN = uvN();
      vec2 camPos = vec2(stN.x, stN.y);
@@ -374,8 +266,7 @@ void main () {
     vec3 snap = texture2D(channel3, zcam).rgb;  
     vec3 cam = texture2D(channel0, zcam).rgb;  
     vec3 bb = texture2D(backbuffer, vec2(stN.x, stN.y)).rgb;
-    vec3 t1 = texture2D(channel1, stN).rgb;
-    vec3 t2 = vec3(stN.x < 0.5);
+    vec3 t1;
     
     vec3 c;
     float lastFeedback = texture2D(backbuffer, vec2(stN.x, stN.y)).a; 
@@ -386,16 +277,10 @@ void main () {
     float hexDiff = hexDiffAvg(zcam, numHex);
     float pointDiff = colourDistance(cam, snap);
     
-    // CHeck Swaps of layers 
-    int t = int(5.);
-    vec3 col_ = mix(col, t1, mN.x);
-    // vec3 t1_ = mix(t1, v3XOR(lum(col2), t1), indMap(mN.y, 2.));
-    float avgLum = hexTexAvg(stN, 30. + indMap(mN.y, 4.) * 200.);
-
-    avgLum = avgLum > 0.2 ? avgLum-0.3 + rand(vec2(time, quant(stN.y+time/10., indMap(mN.x, 4.) * 100.)))/1.5 : 0.;
+    float avgLum = hexTexAvg(stN, 30. + indMap(mN.y, 2.) * 200.);
+    avgLum = avgLum > 0.2 ? avgLum-0.3 + rand(vec2(time, quant(stN.y+time/10., 100.)))/1.5 : 0.;
     t1 = vec3(avgLum);
     
-    // col = v3XOR(col, t1);
     
     if(hexDiff > 0.8){
         if(lastFeedback < 1.) {
@@ -408,15 +293,14 @@ void main () {
     }
     else {
         feedback = lastFeedback * decay;
-        if(lastFeedback > 0.5) { //if you put this below 1 you might have never-fading shadows 
-            c = mix(t1, col * pow(blockColor, lumBlend), lastFeedback); //swap col for bb for glitchier effect
+        if(lastFeedback > 0.5) {
+            c = mix(t1, col * pow(blockColor, lumBlend), lastFeedback); 
         } else {
             feedback = 0.;
             c = t1;
-            //c = vec3(0.);
         }
     }
     
     gl_FragColor = vec4(vec3(c), feedback);
 }
-`
+`;
