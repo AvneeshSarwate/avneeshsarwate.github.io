@@ -24,9 +24,25 @@ var mCompileTimer = null;
 var editor = null;
 mErrors = new Array();
 
+var useAVInput = true;
+var isMobile = mobileAndTabletcheck();
+var useAudioInput = !isMobile;
+var useVideoInput = !isMobile;
 
-$( document ).ready(function()
-{
+var numFrames = 0;
+
+//create an audio context
+window.AudioContext = window.AudioContext || window.webkitAudioContext;
+var audioContext = new AudioContext();
+
+var lastShaderTime = 0;
+
+var interShaderSum = 0;
+
+var lastDragTime = 0;
+var numDragEvents = 0;
+var interDragTimes = 0;
+$( document ).ready(function() {
     //--------------------- FOOTER UI ------------
     $('#footer')
         .mouseover( function(event)
@@ -940,10 +956,10 @@ $( document ).ready(function()
 
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
-    if (window.location.protocol != "https:") 
-        alert("Browser may not support microphone on non-secure connection. Please copy your code before changing protocol in the URL from http to https.");
+    // if (window.location.protocol != "https:") 
+    //     alert("Browser may not support microphone on non-secure connection. Please copy your code before changing protocol in the URL from http to https.");
 
-    if (navigator.getUserMedia) 
+    if (navigator.getUserMedia && !isMobile) 
     {
         initAudio();
         navigator.getUserMedia(
@@ -963,8 +979,8 @@ $( document ).ready(function()
         $("#micTogglePlaythrough").button("enable");
         bandsOn = true;
     }
-    else
-        alert("Browser doesn't support microphone or audio line in.");
+    // else
+    //     alert("Browser doesn't support microphone or audio line in.");
 
     // --- ace editor ---------------------
     var langTools = ace.require("ace/ext/language_tools");
@@ -988,9 +1004,9 @@ $( document ).ready(function()
     });
     editor.$blockScrolling = Infinity;
     if (typeof(Storage) !== "undefined" && typeof(localStorage.lastValidCode) !== "undefined"){
-        editor.setValue(localStorage.lastValidCode,-1);
+        editor.setValue(defaultShader,-1);
     }else{
-        editor.setValue("void main () {\n\tgl_FragColor = vec4(black, 1.0);\n}", -1);
+        editor.setValue(defaultShader, -1);
     }
    
     // mCodeMirror.on("drop", function( mCodeMirror, event )
@@ -1024,47 +1040,55 @@ $( document ).ready(function()
             $("#audioClock").html(min + ':' + sec);
         }
 
-        mInputs[0] = wcTex;
-        mInputs[1] = videoTextures[0]; 
+        if(!isMobile) {
+            mInputs[0] = wcTex;
+            mInputs[1] = videoTextures[0]; 
 
-        if (webcamReady) {
-          updateVideoTexture(gl, webcamTexture, webcam);
-        }
+            if (webcamReady) {
+              updateVideoTexture(gl, webcamTexture, webcam);
+            }
 
-        if(webcamReady && takeSnapshot){
-            updateVideoTexture(gl, webcamSnapshotTexture, webcam);
-            var texture = {};
-            texture.globject = webcamSnapshotTexture;
-            texture.type = "tex_2D";
-            texture.image = {height: webcam.height, width: webcam.width};
-            texture.loaded = webcamReady;
-            mInputs[3] = texture; //channel3 is hardcoded as webcam snapshot
-            takeSnapshot = false;
-            createInputStr();
-        }
+            if(webcamReady && takeSnapshot){
+                updateVideoTexture(gl, webcamSnapshotTexture, webcam);
+                var texture = {};
+                texture.globject = webcamSnapshotTexture;
+                texture.type = "tex_2D";
+                texture.image = {height: webcam.height, width: webcam.width};
+                texture.loaded = webcamReady;
+                mInputs[3] = texture; //channel3 is hardcoded as webcam snapshot
+                takeSnapshot = false;
+                createInputStr();
+            }
 
-        for(var i = 0; i < videosReady.length; i++) {
-            if(videosReady[i]){
-                updateVideoTexture(gl, videoTextures[i].globject, videos[i]);
+            for(var i = 0; i < videosReady.length; i++) {
+                if(videosReady[i]){
+                    updateVideoTexture(gl, videoTextures[i].globject, videos[i]);
+                }
             }
         }
-
-        paint();
+        var toneTime = Tone.Transport.seconds.toFixed(3);
+        var dateTime =  (Date.now() - mTime) * 0.001;
+        if(numFrames++ % 30 == 0) console.log("30 frames", dateTime, toneTime, dateTime - toneTime);
+        interShaderSum += shaderTime - lastShaderTime;
+        lastShaderTime = shaderTime;
+        paint(shaderTime);
     }
 
-    webcam = setupWebcam();
-    webcamTexture = initVideoTexture(gl, "blankurl");
-    webcamSnapshotTexture = initVideoTexture(gl, "blankurl");
-    wcTex = {}
-    wcTex.globject = webcamTexture;
-    wcTex.type = "tex_2D";
-    wcTex.image = {height: webcam.height, width: webcam.width};
-    wcTex.loaded = true;
-    
-    createNewVideoTexture(gl, "./starfield.mov", 0);   
+    if(!isMobile) {
+        webcam = setupWebcam();
+        webcamTexture = initVideoTexture(gl, "blankurl");
+        webcamSnapshotTexture = initVideoTexture(gl, "blankurl");
+        wcTex = {}
+        wcTex.globject = webcamTexture;
+        wcTex.type = "tex_2D";
+        wcTex.image = {height: webcam.height, width: webcam.width};
+        wcTex.loaded = true;
+        
+        createNewVideoTexture(gl, "./starfield.mov", 0);   
 
-    mInputs[0] = wcTex;
-    mInputs[1] = videoTextures[0]; 
+        mInputs[0] = wcTex;
+        mInputs[1] = videoTextures[0]; 
+    }
 
     mTime = Date.now();
     renderLoop2();
@@ -1073,7 +1097,8 @@ $( document ).ready(function()
     for(var i = 1; i < 20; i++) {    
         setTimeout(function() {
             if(!defaultShaderCompiled) {
-                editor.setValue(defaultShader);
+                console.log("defaultShader set");
+                editor.setValue(defaultShader, -1);
                 setShaderFromEditor(defaultShader);
             }
         }, i*1000);
@@ -1083,6 +1108,11 @@ $( document ).ready(function()
     
     player.crossorigin="anonymous";
     var loader = new SoundcloudLoader(player,uiUpdater);
+
+    StartAudioContext(Tone.context, $('#demogl')).then(function(){
+        console.log('audio context started from StartAudioContext');
+        Tone.Transport.start();
+    });
 
     var audioSource = null;
     var form = document.getElementById('form');
@@ -1099,9 +1129,9 @@ $( document ).ready(function()
             });
     };
 
-form.addEventListener('submit', function(e) {
-    initAudio();
-    audioSource = new SoundCloudAudioSource(player);
+    form.addEventListener('submit', function(e) {
+        initAudio();
+        audioSource = new SoundCloudAudioSource(player);
         e.preventDefault();
         var trackUrl = document.getElementById('input').value;
         loadAndUpdate(trackUrl);
@@ -1122,6 +1152,23 @@ $(document)
         mMouseClickX = event.pageX;
         mMouseClickY = event.pageY;
     })
+    .on('touchmove', function(event){
+        event.preventDefault()
+        var touch = event.originalEvent.touches[0] || event.originalEvent.changedTouches[0];
+        mMousePosX = touch.pageX;
+        mMousePosY = touch.pageY;
+        var dragTime = (Date.now() - mTime) * 0.001;
+        numDragEvents += 1;
+        interDragTimes += dragTime - lastDragTime;
+        lastDragTime = dragTime;
+
+    })
+    // .on('ontouchmove', function(event){
+    //     event.preventDefault()
+    //     var touch = event.originalEvent.touches[0] || event.originalEvent.changedTouches[0];
+    //     mMousePosX = touch.pageX;
+    //     mMousePosY = touch.pageY;
+    // })
     .mouseup( function( event ) 
     { })
     .keydown( function( event )
@@ -1224,6 +1271,17 @@ function setShader(result, fromScript)
             console.log(result.mInfo); 
             editor.session.setAnnotations(tAnnotations);
         }
+    }
+    var sequenceErrorLines = Object.keys(result.sequenceErrors);
+    if(sequenceErrorLines.length != 0){
+        var sAnnotations = [];
+        for(var i = 0; i < sequenceErrorLines.length; i++){
+            var annotation = {};
+            annotation.row = sequenceErrorLines[i];
+            annotation.text = result.sequenceErrors[sequenceErrorLines[i]];
+            annotation.type = "error";
+        }
+        if(debugging) editor.session.setAnnotations(sAnnotations);
     }
 }
 

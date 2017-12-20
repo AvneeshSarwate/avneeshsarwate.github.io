@@ -9,10 +9,10 @@ float colourDistance(vec3 e1, vec3 e2) {
 void main () {
     vec2 stN = uvN();
     vec3 snap = texture2D(channel3, vec2(1. -stN.x, stN.y)).rgb;
-    vec3 cam = texture2D(channel0, vec2(1. -stN.x, stN.y)).rgb;
+    vec3 cam = texture2D(channel0, vec2(1. -stN.x, 1.-stN.y)).rgb;
     vec3 tex = texture2D(channel1, vec2(stN.x, 1.-stN.y)).rgb;
     vec3 c;
     if(colourDistance(cam, snap) < .5) c = cam; 
     else c = tex;
-  gl_FragColor = vec4(c, 1.0);
+	gl_FragColor = vec4(c, 1.0);
 }
