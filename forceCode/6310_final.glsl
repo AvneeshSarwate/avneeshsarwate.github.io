@@ -323,7 +323,7 @@ void main () {
     vec3 t1 = vec3(avgLum);
     
     // implement the trailing effectm using the alpha channel to track the state of decay 
-    if(hexDiff > 0.8){
+    if(hexDiff > 0.3){
         if(lastFeedback < 1.) {
             feedback = 1.;
             c = col * pow(blockColor, lumBlend);
